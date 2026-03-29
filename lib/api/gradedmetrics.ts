@@ -49,8 +49,9 @@ export async function getGMSetCards(gmSetCode: string): Promise<GMCard[]> {
   if (cached) return cached
 
   try {
-    const data = await gmFetch<GMCard[]>(`sets/${gmSetCode}.json`)
-    const cards = Array.isArray(data) ? data : []
+    const data = await gmFetch<{ c?: GMCard[] } | GMCard[]>(`sets/${gmSetCode}.json`)
+    // Set files are wrapped: { "c": [...cards] }
+    const cards = Array.isArray(data) ? data : ((data as { c?: GMCard[] }).c ?? [])
     setCardsCache.set(gmSetCode, cards)
     return cards
   } catch {
