@@ -47,4 +47,5 @@ export interface MergedSet {
   releaseDate?: string
   logoUrl?: string
   cardCount?: number
+  hasPSAData?: boolean
 }

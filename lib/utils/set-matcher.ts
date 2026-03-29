@@ -1,7 +1,20 @@
 import setIdMapData from '../data/set-id-map.json'
 import { TCGSet } from '../types/tcg'
 
-const MAPPINGS = setIdMapData.mappings as Record<string, string>
+interface PSASetInfo {
+  psaSetId: string
+  psaUrl: string
+}
+
+const MAPPINGS = setIdMapData.sets as Record<string, PSASetInfo>
+
+export function getPSAInfoForTcgSet(tcgSetId: string): PSASetInfo | undefined {
+  return MAPPINGS[tcgSetId]
+}
+
+export function hasPSAData(tcgSetId: string): boolean {
+  return tcgSetId in MAPPINGS
+}
 
 function normalize(str: string): string {
   return str
@@ -15,11 +28,7 @@ function similarity(a: string, b: string): number {
   const na = normalize(a)
   const nb = normalize(b)
   if (na === nb) return 1.0
-
-  // Check if one contains the other
   if (na.includes(nb) || nb.includes(na)) return 0.85
-
-  // Count common words
   const wordsA = new Set(na.split(' '))
   const wordsB = new Set(nb.split(' '))
   const common = Array.from(wordsA).filter(w => wordsB.has(w)).length
@@ -27,19 +36,12 @@ function similarity(a: string, b: string): number {
   return total > 0 ? common / total : 0
 }
 
-export function psaSetIdToTcgSetId(psaSetId: string): string | undefined {
-  return MAPPINGS[psaSetId]
-}
-
 export function findTcgSetForPsaSet(psaSetName: string, allTcgSets: TCGSet[]): TCGSet | undefined {
-  // First try exact name match
   const exact = allTcgSets.find(s => normalize(s.name) === normalize(psaSetName))
   if (exact) return exact
 
-  // Then try fuzzy match
   let best: TCGSet | undefined
   let bestScore = 0
-
   for (const tcgSet of allTcgSets) {
     const score = similarity(psaSetName, tcgSet.name)
     if (score > bestScore && score > 0.6) {
@@ -47,23 +49,21 @@ export function findTcgSetForPsaSet(psaSetName: string, allTcgSets: TCGSet[]): T
       best = tcgSet
     }
   }
-
   return best
 }
 
+// Slug is just the TCG set ID (e.g. "base1", "swsh7")
+// For sets with no TCG ID, use "psa-{psaSetId}"
 export function buildSetSlug(psaSetId: string, tcgSetId?: string): string {
-  if (tcgSetId) return `${tcgSetId}--${psaSetId}`
-  return `psa-${psaSetId}`
+  if (tcgSetId) return tcgSetId
+  return psaSetId ? `psa-${psaSetId}` : 'unknown'
 }
 
-export function parseSetSlug(slug: string): { psaSetId: string; tcgSetId?: string } {
+export function parseSetSlug(slug: string): { psaSetId?: string; tcgSetId?: string } {
   if (slug.startsWith('psa-')) {
     return { psaSetId: slug.replace('psa-', '') }
   }
-  const parts = slug.split('--')
-  if (parts.length === 2) {
-    return { tcgSetId: parts[0], psaSetId: parts[1] }
-  }
-  // Legacy: try as just psaSetId
-  return { psaSetId: slug }
+  // It's a TCG set ID — look up the PSA info
+  const psaInfo = getPSAInfoForTcgSet(slug)
+  return { tcgSetId: slug, psaSetId: psaInfo?.psaSetId }
 }

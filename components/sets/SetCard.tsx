@@ -9,7 +9,7 @@ interface SetCardProps {
 
 export function SetCard({ set }: SetCardProps) {
   const slug = buildSetSlug(set.psaSetId, set.tcgSetId)
-  const canBrowse = !!set.psaSetId
+  const canBrowse = !!(set.tcgSetId || set.psaSetId)
 
   const cardContent = (
     <div className={`group bg-white rounded-xl border border-gray-200 p-4 flex flex-col items-center gap-3 transition-all duration-200 ${canBrowse ? 'hover:border-blue-400 hover:shadow-md cursor-pointer' : 'opacity-60'}`}>
@@ -43,11 +43,16 @@ export function SetCard({ set }: SetCardProps) {
           <p className="text-xs text-gray-400">{set.cardCount} cards</p>
         )}
       </div>
-      {canBrowse && (
-        <span className="text-xs text-blue-600 group-hover:text-blue-700 font-medium">
-          View Population →
-        </span>
-      )}
+      <div className="flex items-center gap-1">
+        {set.hasPSAData && (
+          <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">PSA</span>
+        )}
+        {canBrowse && (
+          <span className="text-xs text-blue-600 group-hover:text-blue-700 font-medium">
+            View Cards →
+          </span>
+        )}
+      </div>
     </div>
   )
 
